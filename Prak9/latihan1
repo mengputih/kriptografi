@@ -1,0 +1,118 @@
+import tkinter as tk
+from tkinter import messagebox
+
+def mod_inverse(e, phi_n):
+    for d in range(1, phi_n):
+        if (e * d) % phi_n == 1:
+            return d
+    return None
+
+def text_to_numbers(text):
+    result = []
+    for ch in text.upper():
+        if ch == " ":
+            result.append(99)   # kode spasi
+        elif "A" <= ch <= "Z":
+            result.append(ord(ch) - 65)
+        else:
+            messagebox.showerror("Error", "Hanya boleh huruf A-Z dan spasi.")
+            return None
+    return result
+def numbers_to_text(nums):
+    result = ""
+    for num in nums:
+        if num == 99:
+            result += " "
+        elif 0 <= num <= 25:
+            result += chr(num + 65)
+        else:
+            result += "?"
+    return result
+
+# Nilai tetap 
+p = 17
+q = 11
+e = 7
+
+# Hitung parameter RSA
+n = p * q
+phi_n = (p - 1) * (q - 1)
+d = mod_inverse(e, phi_n)
+
+def proses_enkripsi():
+    text = entry_plain.get()
+    angka = text_to_numbers(text)
+
+    if angka is None:
+        return
+
+    cipher_list = [pow(m, e, n) for m in angka]
+
+    entry_cipher.delete(0, tk.END)
+    entry_cipher.insert(0, " ".join(map(str, cipher_list)))
+
+
+def proses_dekripsi():
+    try:
+        cipher_nums = list(map(int, entry_cipher.get().split()))
+    except:
+        messagebox.showerror("Error", "Ciphertext harus berupa angka.")
+        return
+
+    plain_nums = [pow(c, d, n) for c in cipher_nums]
+    text = numbers_to_text(plain_nums)
+
+    entry_plain.delete(0, tk.END)
+    entry_plain.insert(0, text)
+
+
+def reset():
+    entry_plain.delete(0, tk.END)
+    entry_cipher.delete(0, tk.END)
+
+
+# GUI Tkinter
+root = tk.Tk()
+root.title("Program RSA – p=17, q=11, e=7")
+root.geometry("420x330")
+root.resizable(False, False)
+
+judul = tk.Label(root, text="PROGRAM RSA - ENKRIPSI & DEKRIPSI", font=("Arial", 14, "bold"))
+judul.pack(pady=10)
+
+info = tk.Label(root, text=f"p={p}, q={q}, n={n}, phi(n)={phi_n}, e={e}, d={d}", font=("Arial", 10))
+info.pack()
+
+frame = tk.Frame(root)
+frame.pack(pady=15)
+
+# Plaintext
+tk.Label(frame, text="Plaintext (M):").grid(row=0, column=0, sticky="w", pady=5)
+entry_plain = tk.Entry(frame, width=25)
+entry_plain.grid(row=0, column=1)
+
+# Ciphertext
+tk.Label(frame, text="Ciphertext (C):").grid(row=1, column=0, sticky="w", pady=5)
+entry_cipher = tk.Entry(frame, width=25)
+entry_cipher.grid(row=1, column=1)
+
+# Tombol
+btn_frame = tk.Frame(root)
+btn_frame.pack(pady=10)
+
+btn_encrypt = tk.Button(btn_frame, text="Enkripsi", width=12, command=proses_enkripsi)
+btn_encrypt.grid(row=0, column=0, padx=5)
+
+btn_decrypt = tk.Button(btn_frame, text="Dekripsi", width=12, command=proses_dekripsi)
+btn_decrypt.grid(row=0, column=1, padx=5)
+
+btn_reset = tk.Button(btn_frame, text="Reset", width=12, command=reset)
+btn_reset.grid(row=0, column=2, padx=5)
+
+footer = tk.Label(root, text="Latihan 1 – RSA Putri Angel Lipipian", font=("Arial", 8))
+footer.pack(side=tk.BOTTOM, pady=8)
+
+footer = tk.Label(root, text="230840163", font=("Arial", 8))
+footer.pack(side=tk.BOTTOM, pady=8)
+
+root.mainloop()

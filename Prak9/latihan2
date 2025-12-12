@@ -1,0 +1,265 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import random
+import math
+
+def is_prime(n):
+    if n <= 1:
+        return False
+    if n <= 3:
+        return True
+    if n % 2 == 0:
+        return False
+    r = int(math.isqrt(n))
+    for i in range(3, r+1, 2):
+        if n % i == 0:
+            return False
+    return True
+
+def primes_in_range(a=50, b=200):
+    return [x for x in range(a, b+1) if is_prime(x)]
+
+def gcd(a, b):
+    while b:
+        a, b = b, a % b
+    return a
+
+def extended_gcd(a, b):
+    if b == 0:
+        return (a, 1, 0)
+    g, x1, y1 = extended_gcd(b, a % b)
+    x = y1
+    y = x1 - (a // b) * y1
+    return (g, x, y)
+
+def mod_inverse(e, phi):
+    g, x, _ = extended_gcd(e, phi)
+    if g != 1:
+        return None
+    return x % phi
+
+
+def text_to_numbers(text):
+    nums = []
+    for ch in text.upper():
+        if ch == " ":
+            nums.append(99)
+        elif "A" <= ch <= "Z":
+            nums.append(ord(ch) - 65)
+        else:
+            raise ValueError("Hanya huruf A-Z atau spasi.")
+    return nums
+
+def numbers_to_text(nums):
+    s = ""
+    for num in nums:
+        if num == 99:
+            s += " "
+        elif 0 <= num <= 25:
+            s += chr(num + 65)
+        else:
+            s += "?"
+    return s
+
+
+def generate_rsa_keys(low=50, high=200):
+    primes = primes_in_range(low, high)
+    p = random.choice(primes)
+    q = random.choice(primes)
+    while q == p:
+        q = random.choice(primes)
+
+    n = p * q
+    phi = (p - 1) * (q - 1)
+
+    # pilih e yang valid
+    possible_e = [x for x in range(3, phi) if gcd(x, phi) == 1]
+    e = random.choice(possible_e)
+
+    d = mod_inverse(e, phi)
+
+    return p, q, n, phi, e, d
+
+
+def encrypt_number(m, e, n):
+    return pow(m, e, n)
+
+def decrypt_number(c, d, n):
+    return pow(c, d, n)
+
+
+
+# GUI
+root = tk.Tk()
+root.title("RSA GUI – Latihan 2 (p,q,e Acak)")
+root.geometry("680x620")
+root.resizable(False, False)
+
+title = tk.Label(root, text="PROGRAM RSA LATIHAN 2", font=("Arial", 18, "bold"))
+title.pack(pady=10)
+
+frame_main = tk.Frame(root)
+frame_main.pack(pady=5)
+
+# =================== KEY DISPLAY ===================
+tk.Label(frame_main, text="p:").grid(row=0, column=0, sticky="w")
+entry_p = tk.Entry(frame_main, width=10)
+entry_p.grid(row=0, column=1, padx=5)
+
+tk.Label(frame_main, text="q:").grid(row=1, column=0, sticky="w")
+entry_q = tk.Entry(frame_main, width=10)
+entry_q.grid(row=1, column=1, padx=5)
+
+tk.Label(frame_main, text="n = p*q:").grid(row=0, column=2, sticky="w", padx=10)
+entry_n = tk.Entry(frame_main, width=15)
+entry_n.grid(row=0, column=3)
+
+tk.Label(frame_main, text="phi(n):").grid(row=1, column=2, sticky="w", padx=10)
+entry_phi = tk.Entry(frame_main, width=15)
+entry_phi.grid(row=1, column=3)
+
+tk.Label(frame_main, text="e (public):").grid(row=2, column=0)
+entry_e = tk.Entry(frame_main, width=10)
+entry_e.grid(row=2, column=1)
+
+tk.Label(frame_main, text="d (private):").grid(row=2, column=2)
+entry_d = tk.Entry(frame_main, width=15)
+entry_d.grid(row=2, column=3)
+
+
+# =================== Generate Keys ===================
+def gui_generate_keys():
+    p, q, n, phi, e, d = generate_rsa_keys()
+
+    entry_p.delete(0, tk.END)
+    entry_q.delete(0, tk.END)
+    entry_n.delete(0, tk.END)
+    entry_phi.delete(0, tk.END)
+    entry_e.delete(0, tk.END)
+    entry_d.delete(0, tk.END)
+
+    entry_p.insert(0, p)
+    entry_q.insert(0, q)
+    entry_n.insert(0, n)
+    entry_phi.insert(0, phi)
+    entry_e.insert(0, e)
+    entry_d.insert(0, d)
+
+    log.insert(tk.END, "=== KEY GENERATED ===\n")
+    log.insert(tk.END, f"p = {p}\nq = {q}\nn = {n}\nphi = {phi}\ne = {e}\nd = {d}\n\n")
+
+
+btn_gen = tk.Button(frame_main, text="Generate Random Key", width=20, command=gui_generate_keys)
+btn_gen.grid(row=3, column=0, columnspan=4, pady=10)
+
+
+# =================== Encryption / Decryption ===================
+
+# plaintext
+tk.Label(root, text="Plaintext:").pack()
+entry_plain = tk.Entry(root, width=40)
+entry_plain.pack(pady=5)
+
+# ciphertext
+tk.Label(root, text="Ciphertext:").pack()
+entry_cipher = tk.Entry(root, width=40)
+entry_cipher.pack(pady=5)
+
+
+def gui_encrypt():
+    try:
+        p = int(entry_p.get())
+        q = int(entry_q.get())
+        n = int(entry_n.get())
+        phi = int(entry_phi.get())
+        e = int(entry_e.get())
+        d = int(entry_d.get())
+    except:
+        messagebox.showerror("Error", "Generate key terlebih dahulu!")
+        return
+
+    text = entry_plain.get().strip().upper()
+    if not text:
+        messagebox.showerror("Error", "Input plaintext kosong.")
+        return
+
+    try:
+        nums = text_to_numbers(text)
+    except Exception as ex:
+        messagebox.showerror("Error", str(ex))
+        return
+
+    cipher_nums = []
+    log.insert(tk.END, "=== ENKRIPSI ===\n")
+    log.insert(tk.END, f"Plaintext: {text}\n")
+    log.insert(tk.END, f"Ke angka: {nums}\n\n")
+
+    for i, m in enumerate(nums):
+        c = encrypt_number(m, e, n)
+        cipher_nums.append(c)
+        log.insert(tk.END, f"{text[i]} -> {m}^{e} mod {n} = {c}\n")
+
+    log.insert(tk.END, f"\nCiphertext numbers: {cipher_nums}\n\n")
+
+    entry_cipher.delete(0, tk.END)
+    entry_cipher.insert(0, " ".join(map(str, cipher_nums)))
+
+
+def gui_decrypt():
+    try:
+        p = int(entry_p.get())
+        q = int(entry_q.get())
+        n = int(entry_n.get())
+        phi = int(entry_phi.get())
+        e = int(entry_e.get())
+        d = int(entry_d.get())
+    except:
+        messagebox.showerror("Error", "Generate key terlebih dahulu!")
+        return
+
+    cipher_text = entry_cipher.get().strip()
+    if not cipher_text:
+        messagebox.showerror("Error", "Ciphertext kosong.")
+        return
+
+    try:
+        cipher_nums = list(map(int, cipher_text.split()))
+    except:
+        messagebox.showerror("Error", "Cipher harus angka dipisah spasi.")
+        return
+
+    recovered_nums = []
+    log.insert(tk.END, "=== DEKRIPSI ===\n")
+
+    for c in cipher_nums:
+        m2 = decrypt_number(c, d, n)
+        recovered_nums.append(m2)
+        log.insert(tk.END, f"{c}^{d} mod {n} = {m2}\n")
+
+    text = numbers_to_text(recovered_nums)
+    log.insert(tk.END, f"\nDekripsi -> {text}\n\n")
+
+    entry_plain.delete(0, tk.END)
+    entry_plain.insert(0, text)
+
+
+def gui_reset():
+    entry_plain.delete(0, tk.END)
+    entry_cipher.delete(0, tk.END)
+    log.delete("1.0", tk.END)
+
+
+btn_frame = tk.Frame(root)
+btn_frame.pack(pady=10)
+
+tk.Button(btn_frame, text="Enkripsi", width=12, command=gui_encrypt).grid(row=0, column=0, padx=5)
+tk.Button(btn_frame, text="Dekripsi", width=12, command=gui_decrypt).grid(row=0, column=1, padx=5)
+tk.Button(btn_frame, text="Reset", width=12, command=gui_reset).grid(row=0, column=2, padx=5)
+
+
+# =================== LOG (DEBUG OUTPUT) ===================
+tk.Label(root, text="DEBUG LOG:").pack()
+log = tk.Text(root, width=80, height=15)
+log.pack(pady=10)
+
+root.mainloop()
